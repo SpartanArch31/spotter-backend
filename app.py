@@ -100,6 +100,33 @@ def draft(abbr):
     })
 
 
-# ── SECTION 4: RUN ────────────────────────────────────────────────────
+# ── SECTION 3b: DEBUG ENDPOINT ───────────────────────────────────────
+# Visit /api/debug/KC to see raw column values — remove after testing
+@app.route("/api/debug/<abbr>")
+def debug(abbr):
+    abbr = abbr.upper()
+    slug = OURLADS_MAP.get(abbr)
+    if not slug:
+        return jsonify({"error": f"Unknown team: {abbr}"}), 404
+    url = f"https://www.ourlads.com/nfldepthcharts/roster/{slug}"
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+    soup = BeautifulSoup(resp.text, "html.parser")
+    table = soup.find("table", {"id": "roster-table"}) or soup.find("table")
+    if not table:
+        return jsonify({"error": "no table found"}), 502
+    rows = table.find_all("tr")
+    # Return first 5 rows with all cell values
+    sample = []
+    for row in rows[:6]:
+        cells = row.find_all(["td","th"])
+        sample.append([c.get_text(strip=True) for c in cells])
+    return jsonify({"headers": sample[0], "rows": sample[1:], "total_rows": len(rows)})
+
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
