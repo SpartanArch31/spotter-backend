@@ -86,7 +86,7 @@ def draft(abbr):
         # OurLads packs year+round+pick into one field: "17 01 010"
         # CFA = College Free Agent (undrafted), SFA = Street Free Agent
         parts = raw.split()
-        if len(parts) >= 2 and parts[0].isdigit():
+        if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
             yr  = "20" + parts[0] if int(parts[0]) < 50 else "19" + parts[0]
             rd  = str(int(parts[1]))  # strip leading zero: "01" -> "1"
             draft_data[name] = {"year": yr, "round": rd}
