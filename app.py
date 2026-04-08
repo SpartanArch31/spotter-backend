@@ -77,18 +77,21 @@ def draft(abbr):
         if len(cells) < 10:
             continue
 
-        name  = cells[1].get_text(strip=True)
-        year  = cells[8].get_text(strip=True)
-        round_ = cells[9].get_text(strip=True)
+        name   = cells[1].get_text(strip=True)
+        raw    = cells[9].get_text(strip=True)  # e.g. "17 01 010" or "CFA" or "SFA"
 
         if not name:
             continue
 
-        # Clean up — OurLads uses "FA" for undrafted free agents
-        if year in ("", "FA", "0", "—") or round_ in ("", "FA", "0", "—"):
-            draft_data[name] = {"year": "UDFA", "round": ""}
+        # OurLads packs year+round+pick into one field: "17 01 010"
+        # CFA = College Free Agent (undrafted), SFA = Street Free Agent
+        parts = raw.split()
+        if len(parts) >= 2 and parts[0].isdigit():
+            yr  = "20" + parts[0] if int(parts[0]) < 50 else "19" + parts[0]
+            rd  = str(int(parts[1]))  # strip leading zero: "01" -> "1"
+            draft_data[name] = {"year": yr, "round": rd}
         else:
-            draft_data[name] = {"year": year, "round": round_}
+            draft_data[name] = {"year": "UDFA", "round": ""}
 
     return jsonify({
         "team":  abbr,
