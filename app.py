@@ -62,9 +62,9 @@ def draft(abbr):
 
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    # ── SECTION 3a: PARSE THE TABLE ───────────────────────────────────
-    # OurLads roster table columns (0-indexed):
-    # 0=Num, 1=Name, 2=Pos, 3=Ht, 4=Wt, 5=Age, 6=Exp, 7=College, 8=DraftYr, 9=Rd
+    # Confirmed OurLads columns (0-indexed):
+    # 0=#, 1=Player, 2=Pos, 3=DOB, 4=Age, 5=HT, 6=WT, 7=School, 8=Orig.Team, 9=Draft Status, 10=NFL Exp
+    # Draft Status examples: "23 01 031" = 2023 Rd1 Pk31 | "25 CFA" = undrafted | "SFA" = street FA
     draft_data = {}
 
     table = soup.find("table", {"id": "roster-table"}) or soup.find("table")
@@ -72,25 +72,26 @@ def draft(abbr):
         return jsonify({"error": "Could not find roster table", "url": url}), 502
 
     rows = table.find_all("tr")
-    for row in rows[1:]:  # skip header row
+    for row in rows[1:]:
         cells = row.find_all("td")
         if len(cells) < 10:
             continue
 
-        name   = cells[1].get_text(strip=True)
-        raw    = cells[9].get_text(strip=True)  # e.g. "17 01 010" or "CFA" or "SFA"
+        name = cells[1].get_text(strip=True)
+        raw  = cells[9].get_text(strip=True)  # e.g. "23 01 031" or "25 CFA" or "SFA"
 
-        if not name:
+        if not name or name == "Active Players":
             continue
 
-        # OurLads packs year+round+pick into one field: "17 01 010"
-        # CFA = College Free Agent (undrafted), SFA = Street Free Agent
         parts = raw.split()
+        # Drafted: first two parts are both numbers e.g. "23 01 031"
         if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
-            yr  = "20" + parts[0] if int(parts[0]) < 50 else "19" + parts[0]
-            rd  = str(int(parts[1]))  # strip leading zero: "01" -> "1"
+            yy = int(parts[0])
+            yr = str(2000 + yy) if yy < 50 else str(1900 + yy)
+            rd = str(int(parts[1]))  # "01" -> "1"
             draft_data[name] = {"year": yr, "round": rd}
         else:
+            # CFA, SFA, or anything else = undrafted
             draft_data[name] = {"year": "UDFA", "round": ""}
 
     return jsonify({
