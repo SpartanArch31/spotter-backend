@@ -11,7 +11,14 @@ from bs4 import BeautifulSoup
 import re
 
 app = Flask(__name__)
-CORS(app)  # Allow requests from any origin (your SpotterBoard HTML file)
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=False)
+
+@app.after_request
+def add_cors(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return response
 
 # ── SECTION 1: TEAM ABBREVIATION MAP ──────────────────────────────────
 # Maps your app's abbreviations to OurLads URL slugs
